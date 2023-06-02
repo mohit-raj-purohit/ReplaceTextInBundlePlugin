@@ -69,6 +69,21 @@
     return obj;
   }
 
+  function replaceText(source, from, to) {
+    return source.replace(new RegExp(from, 'g'), to);
+  }
+
+  function getBundleSource(compilation, bundle) {
+    var asset = compilation.assets[bundle];
+    if (!asset) {
+      throw new Error("ReplaceTextInBundlePlugin: Bundle '".concat(bundle, "' not found"));
+    }
+    return asset.source();
+  }
+  function updateBundleSource(compilation, bundle, source) {
+    compilation.assets[bundle] = new webpack.sources.RawSource(source);
+  }
+
   var ReplaceTextInBundlePlugin = /*#__PURE__*/function () {
     function ReplaceTextInBundlePlugin(options) {
       _classCallCheck(this, ReplaceTextInBundlePlugin);
@@ -80,18 +95,24 @@
       value: function apply(compiler) {
         var _this = this;
         if (!Array.isArray(this.options)) {
-          throw new Error("ReplaceTextInBundlePlugin: Expected an array in options");
+          throw new Error('ReplaceTextInBundlePlugin: Expected an array in options');
         }
         compiler.hooks.emit.tap('ReplaceTextInBundlePlugin', function (compilation) {
-          _this.options.forEach(function (option) {
-            if (option.bundle === undefined || option.from === undefined || option.to === undefined) {
-              throw new Error("ReplaceTextInBundlePlugin: Invalid object key");
-            }
-            var bundleSource = compilation.assets[option.bundle].source();
-            var modifiedBundleSource = bundleSource.replace(new RegExp(option.from, 'g'), option.to);
-            compilation.assets[option.bundle] = new webpack.sources.RawSource(modifiedBundleSource);
-          });
+          _this.options.forEach(_this.processOption.bind(_this, compilation));
         });
+      }
+    }, {
+      key: "processOption",
+      value: function processOption(compilation, option) {
+        if (option.bundle === undefined || option.from === undefined || option.to === undefined) {
+          throw new Error('ReplaceTextInBundlePlugin: Invalid object key');
+        }
+        var bundle = option.bundle,
+          from = option.from,
+          to = option.to;
+        var bundleSource = getBundleSource(compilation, bundle);
+        var modifiedBundleSource = replaceText(bundleSource, from, to);
+        updateBundleSource(compilation, bundle, modifiedBundleSource);
       }
     }]);
     return ReplaceTextInBundlePlugin;

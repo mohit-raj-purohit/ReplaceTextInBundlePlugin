@@ -5,8 +5,9 @@
   "main": "./dist/umd/index.js",
   "module": "./dist/esm/index.js",
   "scripts": {
-    "prepublishOnly": "npm version patch",
-    "build": "rollup-scripts build --typescript"
+    "version:patch": "npm version patch",
+    "build": "rollup-scripts build --typescript",
+    "prepublishOnly": "npm run build && npm run version:patch"
   },
   "keywords": [
     "webpack",

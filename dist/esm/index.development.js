@@ -68,6 +68,9 @@ function _defineProperty(obj, key, value) {
 function replaceText(source, from, to) {
   return source.replace(new RegExp(from, 'g'), to);
 }
+function escapeSpecialCharacters(input) {
+  return input.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+}
 
 function getBundleSource(compilation, bundle) {
   var asset = compilation.assets[bundle];
@@ -107,7 +110,8 @@ var ReplaceTextInBundlePlugin = /*#__PURE__*/function () {
         from = option.from,
         to = option.to;
       var bundleSource = getBundleSource(compilation, bundle);
-      var modifiedBundleSource = replaceText(bundleSource, from, to);
+      var escapedFrom = escapeSpecialCharacters(from);
+      var modifiedBundleSource = replaceText(bundleSource, escapedFrom, to);
       updateBundleSource(compilation, bundle, modifiedBundleSource);
     }
   }]);

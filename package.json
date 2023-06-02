@@ -5,7 +5,7 @@
   "main": "./dist/umd/index.js",
   "module": "./dist/esm/index.js",
   "scripts": {
-    "version:patch": "npm version major",
+    "version:patch": "npm version patch",
     "build": "rollup-scripts build --typescript",
     "prepublishOnly": "npm run build && npm run version:patch"
   },

@@ -1,2 +1,2 @@
-export { replaceText } from './utils';
+export { replaceText, escapeSpecialCharacters } from './utils';
 export { getBundleSource, updateBundleSource } from './bundleUtils';

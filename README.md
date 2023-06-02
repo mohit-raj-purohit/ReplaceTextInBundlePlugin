@@ -56,4 +56,5 @@ Note: Make sure that the specified text patterns (`from`) exist in the bundle fi
 
 This project is licensed under the [MIT License](https://opensource.org/licenses/MIT).
 
----
+## Contributing
+We welcome contributions from the community to enhance the plugin's functionality and address any issues. If you have any feedback, bug reports, or feature requests, please don't hesitate to [open an issue](https://github.com/mohit-raj-purohit/ReplaceTextInBundlePlugin/issues) or submit a pull request on GitHub.

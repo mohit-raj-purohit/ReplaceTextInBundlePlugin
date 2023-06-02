@@ -1,6 +1,6 @@
 {
   "name": "replace-text-in-bundle-plugin",
-  "version": "1.0.2",
+  "version": "1.0.3",
   "description": "A webpack plugin for dynamically replacing text patterns in bundle files during the build process.",
   "main": "./dist/umd/index.js",
   "module": "./dist/esm/index.js",

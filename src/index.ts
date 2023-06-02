@@ -1,6 +1,11 @@
 import {Compiler, Compilation} from 'webpack';
 import {Option} from './constants';
-import {getBundleSource, updateBundleSource, replaceText, escapeSpecialCharacters} from './utils';
+import {
+	getBundleSource,
+	updateBundleSource,
+	replaceText,
+	escapeSpecialCharacters,
+} from './utils';
 
 class ReplaceTextInBundlePlugin {
 	private options: Option[];
@@ -37,7 +42,7 @@ class ReplaceTextInBundlePlugin {
 
 		const {bundle, from, to} = option;
 		const bundleSource = getBundleSource(compilation, bundle);
-        const escapedFrom = escapeSpecialCharacters(from);
+		const escapedFrom = escapeSpecialCharacters(from);
 		const modifiedBundleSource = replaceText(bundleSource, escapedFrom, to);
 		updateBundleSource(compilation, bundle, modifiedBundleSource);
 	}

@@ -8,7 +8,7 @@ export function escapeSpecialCharacters(input: string): string {
 
 const utils = {
 	replaceText,
-    escapeSpecialCharacters
+	escapeSpecialCharacters,
 };
 
 export default utils;

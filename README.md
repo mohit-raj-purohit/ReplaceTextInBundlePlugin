@@ -1,60 +1,104 @@
 # replace-text-in-bundle-plugin
 
-A webpack plugin for replacing text in bundle files.
+A webpack 5 plugin that replaces text in emitted assets during the build. It runs inside
+`processAssets` after minification and before source maps are extracted and content hashes
+are finalised, so `.map` files stay aligned and `[contenthash]` filenames reflect the replaced
+output.
 
 ## Installation
-
-Install the plugin using npm:
 
 ```shell
 npm i --save-dev replace-text-in-bundle-plugin
 ```
 
+`webpack` 5 is a peer dependency. Node 18 or newer is required.
+
 ## Usage
 
-1. Import the plugin in your webpack configuration file:
+```js
+// CommonJS
+const ReplaceTextInBundlePlugin = require('replace-text-in-bundle-plugin');
 
-   ```javascript
-   const ReplaceTextInBundlePlugin = require('replace-text-in-bundle-plugin');
-   ```
+// ESM / TypeScript (needs `esModuleInterop` or `allowSyntheticDefaultImports` in tsconfig)
+import ReplaceTextInBundlePlugin from 'replace-text-in-bundle-plugin';
+// TypeScript without esModuleInterop
+import ReplaceTextInBundlePlugin = require('replace-text-in-bundle-plugin');
 
-2. Add an instance of the plugin to the `plugins` array in your webpack configuration:
+module.exports = {
+  plugins: [
+    new ReplaceTextInBundlePlugin([
+      {
+        bundle: 'main.bundle.js',
+        from: '"${temp_base_url}"',
+        to: 'window.site_base_url + "/some/path/to/"',
+      },
+      {
+        bundle: /\.css$/,
+        from: '${temp_base_url}',
+        to: '',
+      },
+    ]),
+  ],
+};
+```
 
-   ```javascript
-   plugins: [
-     new ReplaceTextInBundlePlugin([
-       {
-         bundle: 'main.bundle.js',
-         from: '"${temp_base_url}"',
-         to: `window.site_base_url + "/some/path/to/"`,
-       },
-       {
-         bundle: 'style.css',
-         from: '${temp_base_url}',
-         to: '',
-       }
-     ])
-   ]
-   ```
+The constructor accepts a single option object or an array of them. Each option is applied in
+order to every asset it matches.
 
-   The plugin takes an array of objects as an argument. Each object represents a replacement configuration. The properties of the configuration object are as follows:
-   - `bundle`: The name of the generated bundle file to modify.
-   - `from`: The text pattern to search for in the bundle.
-   - `to`: The replacement text to use.
+### Options
 
-   In the above example, the plugin will replace `"${temp_base_url}"` with `window.site_base_url + "/some/path/to/"` in the `main.bundle.js` file, and `${temp_base_url}` with an empty string in the `style.css` file.
+| Key      | Type                                                  | Description |
+|----------|-------------------------------------------------------|-------------|
+| `bundle` | `string \| RegExp \| (name: string) => boolean`        | Which emitted asset(s) to modify. A string must match the output filename exactly. Use a RegExp or predicate for hashed names such as `main.[contenthash].js`. |
+| `from`   | `string \| RegExp`                                     | Text to find. A string is matched literally (regex metacharacters are safe). A RegExp is matched as a pattern; the `g` flag is added if missing. |
+| `to`     | `string \| (substring, ...groups, offset, source) => string` | Replacement. When `from` is a string, `to` is inserted literally (`$&`, `$1`, `$$` are **not** special). When `from` is a RegExp, `to` supports the same `$` patterns as `String.prototype.replace`. A function receives the same arguments as a `String.prototype.replace` callback. |
 
-## Use Case
+### Hashed filenames
 
-This plugin is useful when you need to dynamically replace specific text patterns in your bundle files during the webpack build process. For example, you may want to replace placeholder URLs or environment-specific values with actual values.
+```js
+new ReplaceTextInBundlePlugin({
+  bundle: /^main\.[a-f0-9]+\.js$/,
+  from: '__API_BASE__',
+  to: 'https://api.example.com',
+});
+```
 
-In the provided usage example, the plugin replaces the `${temp_base_url}` placeholder with a custom URL defined in the `window.site_base_url` variable, concatenated with the value of `/some/path/to/`. This allows you to dynamically set the base URL for your application or replace any other placeholders as needed.
+### Pattern replacement
 
-Note: Make sure that the specified text patterns (`from`) exist in the bundle files you're targeting, otherwise the plugin won't make any changes.
+```js
+new ReplaceTextInBundlePlugin({
+  bundle: (name) => name.endsWith('.js'),
+  from: /__VERSION_(\w+)__/g,
+  to: (_match, channel) => versions[channel],
+});
+```
+
+## Behaviour
+
+- Runs just before `PROCESS_ASSETS_STAGE_DEV_TOOLING`. That is **after Terser**, so `from` must match the minified output (Terser may fold `"a" + "b"` into `"ab"` or change quote style), and before `.map` files are extracted.
+- Rewrites assets with `ReplaceSource`, so external and inline source maps remain aligned.
+- `[contenthash]` reflects the replaced content when `optimization.realContentHash` is enabled. That is webpack's default in `production` mode only; enable it explicitly in other modes if you rely on it.
+- Assets emitted later in `processAssets` by other plugins (for example `index.html` from html-webpack-plugin) are also processed, regardless of plugin order.
+- Buffer-backed assets are treated as UTF-8 text.
+- If an option's `bundle` matches no asset, a **compilation error** is reported after all assets are processed. The build continues (watch mode is not killed) but `stats.hasErrors()` is true.
+- If `from` is not found in any asset an option matched, one **compilation warning** is reported for that option.
+- A replacer function's return value is coerced with `String()`, like `String.prototype.replace`. If a `bundle` predicate or replacer throws, the error is reported as a compilation error with the option index and asset name.
+- Invalid options throw from the constructor, so misconfiguration fails when the webpack config is loaded.
+
+## Migrating from 1.x
+
+- `require('replace-text-in-bundle-plugin')` now returns the class directly. Remove any `.default`.
+- `from` must be a non-empty string or RegExp. An empty string previously corrupted the asset.
+- A missing bundle or an invalid option no longer throws inside the build; it becomes a compilation error.
+- `webpack` moved from `dependencies` to `peerDependencies`. Node 18 or newer is required.
+- An empty options array is rejected.
+- `$` sequences in a string `to` are now inserted literally.
 
 ## License
 
-This project is licensed under the [MIT License](https://opensource.org/licenses/MIT).
+[MIT](./LICENSE)
 
 ## Contributing
-We welcome contributions from the community to enhance the plugin's functionality and address any issues. If you have any feedback, bug reports, or feature requests, please don't hesitate to [open an issue](https://github.com/mohit-raj-purohit/ReplaceTextInBundlePlugin/issues) or submit a pull request on GitHub.
+
+Bug reports and pull requests are welcome at
+[github.com/mohit-raj-purohit/ReplaceTextInBundlePlugin](https://github.com/mohit-raj-purohit/ReplaceTextInBundlePlugin/issues).

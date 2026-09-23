@@ -43,7 +43,7 @@ describe('ReplaceTextInBundlePlugin', () => {
 		const r = await build({plugins: [opt({bundle: 'main.js', from: 'zzz-not-here', to: 'b'})]});
 		expect(r.stats.hasErrors()).toBe(false);
 		expect(r.stats.hasWarnings()).toBe(true);
-		expect(r.stats.toJson().warnings![0].message).toMatch(/'zzz-not-here' was not found in 'main\.js'/);
+		expect(r.stats.toJson().warnings![0].message).toMatch(/'zzz-not-here' was not found in any asset matching 'main\.js'/);
 	});
 
 	it('applies multiple options to the same asset in order', async () => {

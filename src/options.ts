@@ -50,6 +50,9 @@ export function normalizeOptions(input: unknown): Option[] {
 
 export function assetMatches(matcher: AssetMatcher, name: string): boolean {
 	if (typeof matcher === 'string') return matcher === name;
-	if (matcher instanceof RegExp) return matcher.test(name);
+	if (matcher instanceof RegExp) {
+		matcher.lastIndex = 0; // g/y flags make test() stateful
+		return matcher.test(name);
+	}
 	return matcher(name);
 }

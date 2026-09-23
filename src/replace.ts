@@ -57,7 +57,7 @@ export function findReplacements(
 		}
 		let text: string;
 		if (typeof to === 'function') {
-			text = to(m[0], ...m.slice(1), m.index, source, m.groups);
+			text = String(to(m[0], ...m.slice(1), m.index, source, m.groups));
 		} else if (literal) {
 			text = to;
 		} else {

@@ -1,8 +1,9 @@
 # replace-text-in-bundle-plugin
 
 A webpack 5 plugin that replaces text in emitted assets during the build. It runs inside
-`processAssets` before content hashing, so `[contenthash]` filenames stay correct and
-source maps stay aligned.
+`processAssets` after minification and before source maps are extracted and content hashes
+are finalised, so `.map` files stay aligned and `[contenthash]` filenames reflect the replaced
+output.
 
 ## Installation
 
@@ -10,7 +11,7 @@ source maps stay aligned.
 npm i --save-dev replace-text-in-bundle-plugin
 ```
 
-`webpack` 5 is a peer dependency. Node 14 or newer is required.
+`webpack` 5 is a peer dependency. Node 18 or newer is required.
 
 ## Usage
 
@@ -18,8 +19,10 @@ npm i --save-dev replace-text-in-bundle-plugin
 // CommonJS
 const ReplaceTextInBundlePlugin = require('replace-text-in-bundle-plugin');
 
-// ESM / TypeScript
+// ESM / TypeScript (needs `esModuleInterop` or `allowSyntheticDefaultImports` in tsconfig)
 import ReplaceTextInBundlePlugin from 'replace-text-in-bundle-plugin';
+// TypeScript without esModuleInterop
+import ReplaceTextInBundlePlugin = require('replace-text-in-bundle-plugin');
 
 module.exports = {
   plugins: [
@@ -72,11 +75,14 @@ new ReplaceTextInBundlePlugin({
 
 ## Behaviour
 
-- Runs at `PROCESS_ASSETS_STAGE_OPTIMIZE_INLINE`, before minification output is hashed. Content hashes are computed from the replaced text.
-- Rewrites assets with `ReplaceSource`, so existing source maps remain valid.
+- Runs just before `PROCESS_ASSETS_STAGE_DEV_TOOLING`. That is **after Terser**, so `from` must match the minified output (Terser may fold `"a" + "b"` into `"ab"` or change quote style), and before `.map` files are extracted.
+- Rewrites assets with `ReplaceSource`, so external and inline source maps remain aligned.
+- `[contenthash]` reflects the replaced content when `optimization.realContentHash` is enabled. That is webpack's default in `production` mode only; enable it explicitly in other modes if you rely on it.
+- Assets emitted later in `processAssets` by other plugins (for example `index.html` from html-webpack-plugin) are also processed, regardless of plugin order.
 - Buffer-backed assets are treated as UTF-8 text.
-- If an option's `bundle` matches no asset, a **compilation error** is reported. The build continues (watch mode is not killed) but `stats.hasErrors()` is true.
-- If `from` is not found in a matched asset, a **compilation warning** is reported.
+- If an option's `bundle` matches no asset, a **compilation error** is reported after all assets are processed. The build continues (watch mode is not killed) but `stats.hasErrors()` is true.
+- If `from` is not found in any asset an option matched, one **compilation warning** is reported for that option.
+- A replacer function's return value is coerced with `String()`, like `String.prototype.replace`. If a `bundle` predicate or replacer throws, the error is reported as a compilation error with the option index and asset name.
 - Invalid options throw from the constructor, so misconfiguration fails when the webpack config is loaded.
 
 ## Migrating from 1.x
@@ -84,7 +90,8 @@ new ReplaceTextInBundlePlugin({
 - `require('replace-text-in-bundle-plugin')` now returns the class directly. Remove any `.default`.
 - `from` must be a non-empty string or RegExp. An empty string previously corrupted the asset.
 - A missing bundle or an invalid option no longer throws inside the build; it becomes a compilation error.
-- `webpack` moved from `dependencies` to `peerDependencies`.
+- `webpack` moved from `dependencies` to `peerDependencies`. Node 18 or newer is required.
+- An empty options array is rejected.
 - `$` sequences in a string `to` are now inserted literally.
 
 ## License

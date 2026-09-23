@@ -1,60 +1,97 @@
 # replace-text-in-bundle-plugin
 
-A webpack plugin for replacing text in bundle files.
+A webpack 5 plugin that replaces text in emitted assets during the build. It runs inside
+`processAssets` before content hashing, so `[contenthash]` filenames stay correct and
+source maps stay aligned.
 
 ## Installation
-
-Install the plugin using npm:
 
 ```shell
 npm i --save-dev replace-text-in-bundle-plugin
 ```
 
+`webpack` 5 is a peer dependency. Node 14 or newer is required.
+
 ## Usage
 
-1. Import the plugin in your webpack configuration file:
+```js
+// CommonJS
+const ReplaceTextInBundlePlugin = require('replace-text-in-bundle-plugin');
 
-   ```javascript
-   const ReplaceTextInBundlePlugin = require('replace-text-in-bundle-plugin');
-   ```
+// ESM / TypeScript
+import ReplaceTextInBundlePlugin from 'replace-text-in-bundle-plugin';
 
-2. Add an instance of the plugin to the `plugins` array in your webpack configuration:
+module.exports = {
+  plugins: [
+    new ReplaceTextInBundlePlugin([
+      {
+        bundle: 'main.bundle.js',
+        from: '"${temp_base_url}"',
+        to: 'window.site_base_url + "/some/path/to/"',
+      },
+      {
+        bundle: /\.css$/,
+        from: '${temp_base_url}',
+        to: '',
+      },
+    ]),
+  ],
+};
+```
 
-   ```javascript
-   plugins: [
-     new ReplaceTextInBundlePlugin([
-       {
-         bundle: 'main.bundle.js',
-         from: '"${temp_base_url}"',
-         to: `window.site_base_url + "/some/path/to/"`,
-       },
-       {
-         bundle: 'style.css',
-         from: '${temp_base_url}',
-         to: '',
-       }
-     ])
-   ]
-   ```
+The constructor accepts a single option object or an array of them. Each option is applied in
+order to every asset it matches.
 
-   The plugin takes an array of objects as an argument. Each object represents a replacement configuration. The properties of the configuration object are as follows:
-   - `bundle`: The name of the generated bundle file to modify.
-   - `from`: The text pattern to search for in the bundle.
-   - `to`: The replacement text to use.
+### Options
 
-   In the above example, the plugin will replace `"${temp_base_url}"` with `window.site_base_url + "/some/path/to/"` in the `main.bundle.js` file, and `${temp_base_url}` with an empty string in the `style.css` file.
+| Key      | Type                                                  | Description |
+|----------|-------------------------------------------------------|-------------|
+| `bundle` | `string \| RegExp \| (name: string) => boolean`        | Which emitted asset(s) to modify. A string must match the output filename exactly. Use a RegExp or predicate for hashed names such as `main.[contenthash].js`. |
+| `from`   | `string \| RegExp`                                     | Text to find. A string is matched literally (regex metacharacters are safe). A RegExp is matched as a pattern; the `g` flag is added if missing. |
+| `to`     | `string \| (substring, ...groups, offset, source) => string` | Replacement. When `from` is a string, `to` is inserted literally (`$&`, `$1`, `$$` are **not** special). When `from` is a RegExp, `to` supports the same `$` patterns as `String.prototype.replace`. A function receives the same arguments as a `String.prototype.replace` callback. |
 
-## Use Case
+### Hashed filenames
 
-This plugin is useful when you need to dynamically replace specific text patterns in your bundle files during the webpack build process. For example, you may want to replace placeholder URLs or environment-specific values with actual values.
+```js
+new ReplaceTextInBundlePlugin({
+  bundle: /^main\.[a-f0-9]+\.js$/,
+  from: '__API_BASE__',
+  to: 'https://api.example.com',
+});
+```
 
-In the provided usage example, the plugin replaces the `${temp_base_url}` placeholder with a custom URL defined in the `window.site_base_url` variable, concatenated with the value of `/some/path/to/`. This allows you to dynamically set the base URL for your application or replace any other placeholders as needed.
+### Pattern replacement
 
-Note: Make sure that the specified text patterns (`from`) exist in the bundle files you're targeting, otherwise the plugin won't make any changes.
+```js
+new ReplaceTextInBundlePlugin({
+  bundle: (name) => name.endsWith('.js'),
+  from: /__VERSION_(\w+)__/g,
+  to: (_match, channel) => versions[channel],
+});
+```
+
+## Behaviour
+
+- Runs at `PROCESS_ASSETS_STAGE_OPTIMIZE_INLINE`, before minification output is hashed. Content hashes are computed from the replaced text.
+- Rewrites assets with `ReplaceSource`, so existing source maps remain valid.
+- Buffer-backed assets are treated as UTF-8 text.
+- If an option's `bundle` matches no asset, a **compilation error** is reported. The build continues (watch mode is not killed) but `stats.hasErrors()` is true.
+- If `from` is not found in a matched asset, a **compilation warning** is reported.
+- Invalid options throw from the constructor, so misconfiguration fails when the webpack config is loaded.
+
+## Migrating from 1.x
+
+- `require('replace-text-in-bundle-plugin')` now returns the class directly. Remove any `.default`.
+- `from` must be a non-empty string or RegExp. An empty string previously corrupted the asset.
+- A missing bundle or an invalid option no longer throws inside the build; it becomes a compilation error.
+- `webpack` moved from `dependencies` to `peerDependencies`.
+- `$` sequences in a string `to` are now inserted literally.
 
 ## License
 
-This project is licensed under the [MIT License](https://opensource.org/licenses/MIT).
+[MIT](./LICENSE)
 
 ## Contributing
-We welcome contributions from the community to enhance the plugin's functionality and address any issues. If you have any feedback, bug reports, or feature requests, please don't hesitate to [open an issue](https://github.com/mohit-raj-purohit/ReplaceTextInBundlePlugin/issues) or submit a pull request on GitHub.
+
+Bug reports and pull requests are welcome at
+[github.com/mohit-raj-purohit/ReplaceTextInBundlePlugin](https://github.com/mohit-raj-purohit/ReplaceTextInBundlePlugin/issues).

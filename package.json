@@ -1,43 +1,53 @@
 {
   "name": "replace-text-in-bundle-plugin",
-  "version": "1.0.3",
-  "description": "A webpack plugin for dynamically replacing text patterns in bundle files during the build process.",
-  "main": "./dist/umd/index.js",
-  "module": "./dist/esm/index.js",
+  "version": "2.0.0",
+  "description": "A webpack 5 plugin for replacing text patterns in emitted assets during the build, preserving source maps and content hashes.",
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "default": "./dist/index.js"
+    }
+  },
+  "files": [
+    "dist"
+  ],
+  "engines": {
+    "node": ">=14"
+  },
+  "sideEffects": false,
   "repository": {
     "type": "git",
     "url": "https://github.com/mohit-raj-purohit/ReplaceTextInBundlePlugin"
   },
   "scripts": {
-    "version:patch": "npm version patch",
-    "build": "rollup-scripts build --typescript",
-    "prepublishOnly": "npm run build && npm run version:patch"
+    "build": "tsc -p tsconfig.build.json",
+    "typecheck": "tsc -p tsconfig.json --noEmit",
+    "test": "vitest run",
+    "prepublishOnly": "npm run typecheck && npm test && npm run build"
   },
   "keywords": [
     "webpack",
-    "plugin",
+    "webpack-plugin",
     "replace",
     "string",
-    "webpack string replace in bundle",
-    "placeholder replacer",
-    "webpack bundle placeholder replacer",
-    "webpack plugin",
+    "placeholder",
     "text replacement",
-    "bundle modification",
-    "dynamic text substitution",
-    "placeholder replacement",
-    "code customization",
-    "build process automation",
-    "bundle optimization",
-    "webpack configuration",
-    "text manipulation"
+    "bundle",
+    "processAssets"
   ],
   "author": "Mohit Raj Purohit",
   "license": "MIT",
-  "devDependencies": {
-    "rollup-scripts": "^0.0.23"
+  "peerDependencies": {
+    "webpack": "^5.0.0"
   },
-  "dependencies": {
-    "webpack": "^5.85.0"
+  "devDependencies": {
+    "@types/node": "^20.0.0",
+    "memfs": "^4.0.0",
+    "source-map": "^0.7.4",
+    "typescript": "^5.0.0",
+    "vitest": "^2.0.0",
+    "webpack": "^5.90.0"
   }
 }
